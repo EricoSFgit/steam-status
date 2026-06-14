@@ -1,0 +1,1 @@
+Mapa está usando prop detailprops do EP2, ativado detalhe e detalhesprite!
