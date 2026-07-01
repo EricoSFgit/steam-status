@@ -1,1 +1,5 @@
-{"online": false, "in_gmod": false, "name": "dexter1111"}
+{
+  "76561198000000000": {"online": true, "in_gmod": false, "name": "Cara1"},
+  "76561198000000001": {"online": false, "in_gmod": false, "name": "Cara2"},
+  "76561198000000002": {"online": true, "in_gmod": true, "name": "Cara3"}
+}
