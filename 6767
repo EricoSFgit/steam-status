@@ -16,12 +16,11 @@ local menuOpen = true
 local currentHighlight = nil
 
 -- Configurações
-local stickDistance = 8
-local lerpFactor = 0.15
+local stickDistance = 8 -- Distância exata do grude
 local highlightColor = Color3.fromRGB(0, 150, 255)
 
 -- ==========================================
--- GUI CRIAÇÃO
+-- GUI CRIAÇÃO (MESMO ANTERIOR, RESUMIDA PARA FOCO NA LÓGICA)
 -- ==========================================
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "StickyGUI"
@@ -45,7 +44,6 @@ local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = mainFrame
 
--- Título
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Text = "⚡ Sticky Follow [F1: Menu]"
 titleLabel.Font = Enum.Font.GothamBold
@@ -57,7 +55,6 @@ titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
 titleLabel.Parent = mainFrame
 
--- Info Labels
 local targetLabel = Instance.new("TextLabel")
 targetLabel.Text = "Alvo: Nenhum"
 targetLabel.Font = Enum.Font.Gotham
@@ -117,7 +114,6 @@ listPadding.PaddingLeft = UDim.new(0, 10)
 listPadding.PaddingRight = UDim.new(0, 10)
 listPadding.Parent = scrollList
 
--- Botão: Atualizar Lista
 local refreshBtn = Instance.new("TextButton")
 refreshBtn.Text = "🔄 Atualizar Lista"
 refreshBtn.Font = Enum.Font.GothamBold
@@ -130,7 +126,6 @@ refreshBtn.Position = UDim2.new(0, 10, 0, 295)
 refreshBtn.Parent = mainFrame
 Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0, 8)
 
--- Botão: Grudar (Stick)
 local stickBtn = Instance.new("TextButton")
 stickBtn.Text = "🧲 Grudar (Stick)"
 stickBtn.Font = Enum.Font.GothamBold
@@ -143,7 +138,6 @@ stickBtn.Position = UDim2.new(0, 10, 0, 345)
 stickBtn.Parent = mainFrame
 Instance.new("UICorner", stickBtn).CornerRadius = UDim.new(0, 8)
 
--- Botão: Desgrudar (Unstick)
 local unstickBtn = Instance.new("TextButton")
 unstickBtn.Text = "❌ Desgrudar (Unstick)"
 unstickBtn.Font = Enum.Font.GothamBold
@@ -157,7 +151,7 @@ unstickBtn.Parent = mainFrame
 Instance.new("UICorner", unstickBtn).CornerRadius = UDim.new(0, 8)
 
 -- ==========================================
--- FUNÇÕES AUXILIARES (ORDEM CORRETA)
+-- FUNÇÕES AUXILIARES
 -- ==========================================
 
 local function updateUI()
@@ -205,9 +199,7 @@ local function applyHighlightToPart(part)
     end
 end
 
--- ESTA FUNÇÃO AGORA ESTÁ DEFINIDA ANTES DE SER CHAMADA
 local function refreshPlayerList()
-    -- Remove apenas os botões de jogador
     for _, child in pairs(scrollList:GetChildren()) do
         if child:IsA("TextButton") and child.Name:sub(1, 2) == "PB" then
             child:Destroy()
@@ -216,8 +208,6 @@ local function refreshPlayerList()
 
     local order = 1
     local playersList = Players:GetPlayers()
-    
-    -- Ordena alfabeticamente
     table.sort(playersList, function(a, b)
         return a.Name < b.Name
     end)
@@ -237,14 +227,12 @@ local function refreshPlayerList()
             btn.Parent = scrollList
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
             
-            -- Destaque se for o alvo atual
             if currentTarget == player then
                 btn.BackgroundColor3 = Color3.fromRGB(0, 150, 50)
                 btn.TextColor3 = Color3.new(1, 1, 1)
             end
 
             btn.MouseButton1Click:Connect(function()
-                -- Lógica de seleção inline para evitar dependência de função não definida
                 currentTarget = player
                 targetPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 if not targetPart and player.Character then
@@ -255,14 +243,13 @@ local function refreshPlayerList()
                 if targetPart then
                     applyHighlightToPart(targetPart)
                 end
-                refreshPlayerList() -- Atualiza a lista para mostrar o destaque
+                refreshPlayerList()
             end)
             
             order += 1
         end
     end
     
-    -- Força atualização do canvas
     scrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
     task.wait(0.1)
     scrollList.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -304,13 +291,14 @@ unstickBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- LOOP DE MOVIMENTO (STICK)
+-- LÓGICA DE GRUDE PERFEITO (NOVA)
 -- ==========================================
 RunService:BindToRenderStep("StickyFollowLogic", Enum.RenderPriority.Late, function()
     if not isStuck or not targetPart or not humanoidRootPart or not targetPart.Parent then
         return
     end
 
+    -- Verifica se o alvo ainda existe
     if not targetPart:IsDescendantOf(workspace) then
         isStuck = false
         currentTarget = nil
@@ -320,18 +308,29 @@ RunService:BindToRenderStep("StickyFollowLogic", Enum.RenderPriority.Late, funct
         return
     end
 
-    local targetPos = targetPart.Position
-    local currentPos = humanoidRootPart.Position
-    local toTarget = targetPos - currentPos
+    -- Pega o CFrame do alvo
+    local targetCFrame = targetPart.CFrame
     
-    if toTarget.Magnitude > 40 then
-        humanoidRootPart.CFrame = CFrame.new(targetPos - (humanoidRootPart.CFrame.LookVector * stickDistance), targetPos)
-        return
-    end
-
-    local newPos = currentPos:Lerp(toTarget * lerpFactor, lerpFactor)
-    local lookTarget = targetPos + Vector3.new(0, 2, 0)
-    humanoidRootPart.CFrame = CFrame.lookAt(newPos, lookTarget)
+    -- Calcula a posição ideal:
+    -- 1. Pega a posição do alvo
+    -- 2. Soma o vetor "LookVector" (direção que o alvo olha) multiplicado pela distância
+    -- Isso faz você ficar exatamente "atrás" ou "na frente" dependendo de como o alvo está orientado.
+    -- Para ficar de FRENTE, usamos o LookVector. Se quiser do lado, use RightVector.
+    
+    local idealPosition = targetCFrame.Position + (targetCFrame.LookVector * stickDistance)
+    
+    -- CFrame ideal: Na posição ideal, olhando para o alvo
+    local idealCFrame = CFrame.lookAt(idealPosition, targetCFrame.Position)
+    
+    -- Opcional: Se quiser que ele fique do LADO (esquerdo/direito) em vez de atrás/frente:
+    -- local idealPosition = targetCFrame.Position + (targetCFrame.RightVector * stickDistance)
+    
+    -- APLICAÇÃO DIRETA (Teleporte suave/Instantâneo)
+    -- Usar CFrame direto garante que você está colado.
+    -- Se quiser suavizar, troque a linha abaixo por:
+    -- humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(idealCFrame, 0.5)
+    
+    humanoidRootPart.CFrame = idealCFrame
 end)
 
 -- ==========================================
@@ -354,7 +353,6 @@ if character then
 end
 LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
--- Atualiza lista quando jogadores entram/saem
 Players.PlayerAdded:Connect(function()
     task.wait(1)
     refreshPlayerList()
