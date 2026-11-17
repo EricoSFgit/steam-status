@@ -32,8 +32,8 @@ screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
+mainFrame.Size = UDim2.new(0, 320, 0, 480)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -240)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 mainFrame.BackgroundTransparency = 0.1
 mainFrame.BorderSizePixel = 0
@@ -82,15 +82,15 @@ statusLabel.Position = UDim2.new(0, 10, 0, 85)
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = mainFrame
 
--- ScrollFrame para a Lista de Jogadores
-local listFrame = Instance.new("Frame")
-listFrame.Name = "PlayerListFrame"
-listFrame.Size = UDim2.new(1, -20, 0, 150)
-listFrame.Position = UDim2.new(0, 10, 0, 125)
-listFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-listFrame.BorderSizePixel = 0
-listFrame.Parent = mainFrame
-Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0, 8)
+-- Container da Lista
+local listContainer = Instance.new("Frame")
+listContainer.Name = "ListContainer"
+listContainer.Size = UDim2.new(1, -20, 0, 160)
+listContainer.Position = UDim2.new(0, 10, 0, 125)
+listContainer.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+listContainer.BorderSizePixel = 0
+listContainer.Parent = mainFrame
+Instance.new("UICorner", listContainer).CornerRadius = UDim.new(0, 8)
 
 local scrollList = Instance.new("ScrollingFrame")
 scrollList.Name = "PlayerScroll"
@@ -98,24 +98,37 @@ scrollList.Size = UDim2.new(1, 0, 1, 0)
 scrollList.Position = UDim2.new(0, 0, 0, 0)
 scrollList.BackgroundTransparency = 1
 scrollList.BorderSizePixel = 0
-scrollList.ScrollBarThickness = 6
-scrollList.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+scrollList.ScrollBarThickness = 8
+scrollList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
 scrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scrollList.Parent = listFrame
+scrollList.Parent = listContainer
 
 local listLayout = Instance.new("UIListLayout")
 listLayout.FillDirection = Enum.FillDirection.Vertical
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 4)
+listLayout.Padding = UDim.new(0, 5)
 listLayout.Parent = scrollList
 
 local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 8)
-listPadding.PaddingBottom = UDim.new(0, 8)
-listPadding.PaddingLeft = UDim.new(0, 8)
-listPadding.PaddingRight = UDim.new(0, 8)
+listPadding.PaddingTop = UDim.new(0, 10)
+listPadding.PaddingBottom = UDim.new(0, 10)
+listPadding.PaddingLeft = UDim.new(0, 10)
+listPadding.PaddingRight = UDim.new(0, 10)
 listPadding.Parent = scrollList
+
+-- Botão: Atualizar Lista
+local refreshBtn = Instance.new("TextButton")
+refreshBtn.Text = "🔄 Atualizar Lista"
+refreshBtn.Font = Enum.Font.GothamBold
+refreshBtn.TextSize = 14
+refreshBtn.TextColor3 = Color3.new(1, 1, 1)
+refreshBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+refreshBtn.BorderSizePixel = 0
+refreshBtn.Size = UDim2.new(1, -20, 0, 40)
+refreshBtn.Position = UDim2.new(0, 10, 0, 295)
+refreshBtn.Parent = mainFrame
+Instance.new("UICorner", refreshBtn).CornerRadius = UDim.new(0, 8)
 
 -- Botão: Grudar (Stick)
 local stickBtn = Instance.new("TextButton")
@@ -126,7 +139,7 @@ stickBtn.TextColor3 = Color3.new(1, 1, 1)
 stickBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
 stickBtn.BorderSizePixel = 0
 stickBtn.Size = UDim2.new(1, -20, 0, 50)
-stickBtn.Position = UDim2.new(0, 10, 0, 285)
+stickBtn.Position = UDim2.new(0, 10, 0, 345)
 stickBtn.Parent = mainFrame
 Instance.new("UICorner", stickBtn).CornerRadius = UDim.new(0, 8)
 
@@ -139,12 +152,12 @@ unstickBtn.TextColor3 = Color3.new(1, 1, 1)
 unstickBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
 unstickBtn.BorderSizePixel = 0
 unstickBtn.Size = UDim2.new(1, -20, 0, 50)
-unstickBtn.Position = UDim2.new(0, 10, 0, 345)
+unstickBtn.Position = UDim2.new(0, 10, 0, 405)
 unstickBtn.Parent = mainFrame
 Instance.new("UICorner", unstickBtn).CornerRadius = UDim.new(0, 8)
 
 -- ==========================================
--- FUNÇÕES AUXILIARES
+-- FUNÇÕES AUXILIARES (ORDEM CORRETA)
 -- ==========================================
 
 local function updateUI()
@@ -192,19 +205,27 @@ local function applyHighlightToPart(part)
     end
 end
 
+-- ESTA FUNÇÃO AGORA ESTÁ DEFINIDA ANTES DE SER CHAMADA
 local function refreshPlayerList()
-    -- Limpa lista atual
+    -- Remove apenas os botões de jogador
     for _, child in pairs(scrollList:GetChildren()) do
-        if child:IsA("TextButton") then
+        if child:IsA("TextButton") and child.Name:sub(1, 2) == "PB" then
             child:Destroy()
         end
     end
 
     local order = 1
-    for _, player in pairs(Players:GetPlayers()) do
+    local playersList = Players:GetPlayers()
+    
+    -- Ordena alfabeticamente
+    table.sort(playersList, function(a, b)
+        return a.Name < b.Name
+    end)
+
+    for _, player in pairs(playersList) do
         if player ~= LocalPlayer then
             local btn = Instance.new("TextButton")
-            btn.Name = "PlayerBtn_" .. player.UserId
+            btn.Name = "PB_" .. player.UserId
             btn.Text = "👤 " .. player.Name
             btn.Font = Enum.Font.Gotham
             btn.TextSize = 14
@@ -216,13 +237,14 @@ local function refreshPlayerList()
             btn.Parent = scrollList
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
             
-            -- Highlight visual se for o alvo atual
+            -- Destaque se for o alvo atual
             if currentTarget == player then
-                btn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-                btn.TextColor3 = Color3.fromRGB(0, 255, 100)
+                btn.BackgroundColor3 = Color3.fromRGB(0, 150, 50)
+                btn.TextColor3 = Color3.new(1, 1, 1)
             end
 
             btn.MouseButton1Click:Connect(function()
+                -- Lógica de seleção inline para evitar dependência de função não definida
                 currentTarget = player
                 targetPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 if not targetPart and player.Character then
@@ -233,24 +255,17 @@ local function refreshPlayerList()
                 if targetPart then
                     applyHighlightToPart(targetPart)
                 end
-                
-                -- Atualiza a cor dos botões na lista
-                for _, b in pairs(scrollList:GetChildren()) do
-                    if b:IsA("TextButton") then
-                        if b.Name == "PlayerBtn_" .. player.UserId then
-                            b.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-                            b.TextColor3 = Color3.fromRGB(0, 255, 100)
-                        else
-                            b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-                            b.TextColor3 = Color3.new(1, 1, 1)
-                        end
-                    end
-                end
+                refreshPlayerList() -- Atualiza a lista para mostrar o destaque
             end)
             
             order += 1
         end
     end
+    
+    -- Força atualização do canvas
+    scrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    task.wait(0.1)
+    scrollList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 end
 
 -- ==========================================
@@ -266,6 +281,10 @@ end)
 -- ==========================================
 -- LÓGICA DOS BOTÕES
 -- ==========================================
+
+refreshBtn.MouseButton1Click:Connect(function()
+    refreshPlayerList()
+end)
 
 stickBtn.MouseButton1Click:Connect(function()
     if currentTarget and targetPart then
@@ -337,13 +356,12 @@ LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
 -- Atualiza lista quando jogadores entram/saem
 Players.PlayerAdded:Connect(function()
-    task.wait(1) -- Aguarda o character carregar
+    task.wait(1)
     refreshPlayerList()
 end)
 Players.PlayerRemoving:Connect(function()
     refreshPlayerList()
     if currentTarget == nil then
-        -- Se o alvo saiu, limpa
         clearHighlight()
         updateUI()
     end
