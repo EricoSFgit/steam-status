@@ -12,14 +12,13 @@ local humanoid = character:WaitForChild("Humanoid")
 local isStuck = false
 local currentTarget = nil
 local targetPart = nil
-local isSelectingMode = false
 local menuOpen = true
 local currentHighlight = nil
 
 -- Configurações
 local stickDistance = 8
 local lerpFactor = 0.15
-local highlightColor = Color3.fromRGB(0, 150, 255) -- Azul Vivo
+local highlightColor = Color3.fromRGB(0, 150, 255)
 
 -- ==========================================
 -- GUI CRIAÇÃO
@@ -33,8 +32,8 @@ screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 380)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -190)
+mainFrame.Size = UDim2.new(0, 320, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -225)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 mainFrame.BackgroundTransparency = 0.1
 mainFrame.BorderSizePixel = 0
@@ -80,34 +79,43 @@ statusLabel.BackgroundColor3 = Color3.new(0, 0, 0)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Size = UDim2.new(1, -20, 0, 30)
 statusLabel.Position = UDim2.new(0, 10, 0, 85)
-targetLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = mainFrame
 
-local selectionStatusLabel = Instance.new("TextLabel")
-selectionStatusLabel.Text = ""
-selectionStatusLabel.Font = Enum.Font.GothamBold
-selectionStatusLabel.TextSize = 12
-selectionStatusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
-selectionStatusLabel.BackgroundColor3 = Color3.new(0, 0, 0)
-selectionStatusLabel.BackgroundTransparency = 1
-selectionStatusLabel.Size = UDim2.new(1, -20, 0, 20)
-selectionStatusLabel.Position = UDim2.new(0, 10, 0, 120)
-selectionStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
-selectionStatusLabel.Parent = mainFrame
+-- ScrollFrame para a Lista de Jogadores
+local listFrame = Instance.new("Frame")
+listFrame.Name = "PlayerListFrame"
+listFrame.Size = UDim2.new(1, -20, 0, 150)
+listFrame.Position = UDim2.new(0, 10, 0, 125)
+listFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+listFrame.BorderSizePixel = 0
+listFrame.Parent = mainFrame
+Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0, 8)
 
--- Botão: Selecionar Alvo
-local selectBtn = Instance.new("TextButton")
-selectBtn.Text = "🎯 Modo Seleção"
-selectBtn.Font = Enum.Font.GothamBold
-selectBtn.TextSize = 16
-selectBtn.TextColor3 = Color3.new(1, 1, 1)
-selectBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 200)
-selectBtn.BorderSizePixel = 0
-selectBtn.Size = UDim2.new(1, -20, 0, 50)
-selectBtn.Position = UDim2.new(0, 10, 0, 150)
-selectBtn.Parent = mainFrame
-Instance.new("UICorner", selectBtn).CornerRadius = UDim.new(0, 8)
+local scrollList = Instance.new("ScrollingFrame")
+scrollList.Name = "PlayerScroll"
+scrollList.Size = UDim2.new(1, 0, 1, 0)
+scrollList.Position = UDim2.new(0, 0, 0, 0)
+scrollList.BackgroundTransparency = 1
+scrollList.BorderSizePixel = 0
+scrollList.ScrollBarThickness = 6
+scrollList.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+scrollList.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollList.Parent = listFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.FillDirection = Enum.FillDirection.Vertical
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 4)
+listLayout.Parent = scrollList
+
+local listPadding = Instance.new("UIPadding")
+listPadding.PaddingTop = UDim.new(0, 8)
+listPadding.PaddingBottom = UDim.new(0, 8)
+listPadding.PaddingLeft = UDim.new(0, 8)
+listPadding.PaddingRight = UDim.new(0, 8)
+listPadding.Parent = scrollList
 
 -- Botão: Grudar (Stick)
 local stickBtn = Instance.new("TextButton")
@@ -118,7 +126,7 @@ stickBtn.TextColor3 = Color3.new(1, 1, 1)
 stickBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
 stickBtn.BorderSizePixel = 0
 stickBtn.Size = UDim2.new(1, -20, 0, 50)
-stickBtn.Position = UDim2.new(0, 10, 0, 210)
+stickBtn.Position = UDim2.new(0, 10, 0, 285)
 stickBtn.Parent = mainFrame
 Instance.new("UICorner", stickBtn).CornerRadius = UDim.new(0, 8)
 
@@ -131,22 +139,9 @@ unstickBtn.TextColor3 = Color3.new(1, 1, 1)
 unstickBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
 unstickBtn.BorderSizePixel = 0
 unstickBtn.Size = UDim2.new(1, -20, 0, 50)
-unstickBtn.Position = UDim2.new(0, 10, 0, 270)
+unstickBtn.Position = UDim2.new(0, 10, 0, 345)
 unstickBtn.Parent = mainFrame
 Instance.new("UICorner", unstickBtn).CornerRadius = UDim.new(0, 8)
-
--- Botão: Limpar Alvo
-local clearBtn = Instance.new("TextButton")
-clearBtn.Text = "🗑️ Limpar Alvo"
-clearBtn.Font = Enum.Font.GothamBold
-clearBtn.TextSize = 14
-clearBtn.TextColor3 = Color3.new(1, 1, 1)
-clearBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-clearBtn.BorderSizePixel = 0
-clearBtn.Size = UDim2.new(1, -20, 0, 40)
-clearBtn.Position = UDim2.new(0, 10, 1, -50)
-clearBtn.Parent = mainFrame
-Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 8)
 
 -- ==========================================
 -- FUNÇÕES AUXILIARES
@@ -168,29 +163,13 @@ local function updateUI()
         statusLabel.Text = "Estado: Inativo"
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
     end
-
-    if isSelectingMode then
-        selectionStatusLabel.Text = "MODO SELEÇÃO ATIVO - CLIQUE EM UM JOGADOR"
-        selectionStatusLabel.Visible = true
-        selectBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 0) -- Laranja quando ativo
-    else
-        selectionStatusLabel.Visible = false
-        selectBtn.BackgroundColor3 = Color3.fromRGB(40, 100, 200)
-    end
 end
 
 local function setMenuState(open)
     menuOpen = open
-    -- Animação suave
     local targetTransparency = open and 0.1 or 0.7
     local tweenInfo = TweenInfo.new(0.2)
     TweenService:Create(mainFrame, tweenInfo, {BackgroundTransparency = targetTransparency}):Play()
-    
-    if open then
-        screenGui.Enabled = true
-    else
-        screenGui.Enabled = true -- Mantém ativo para o highlight funcionar, mas o frame fica transparente
-    end
 end
 
 local function clearHighlight()
@@ -205,38 +184,73 @@ local function applyHighlightToPart(part)
     if part then
         local highlight = Instance.new("Highlight")
         highlight.FillColor = highlightColor
-        highlight.FillTransparency = 0.7 -- Mais visível
+        highlight.FillTransparency = 0.7
         highlight.OutlineColor = highlightColor
-        highlight.OutlineTransparency = 0 -- Borda sólida
+        highlight.OutlineTransparency = 0
         highlight.Parent = part
         currentHighlight = highlight
     end
 end
 
-local function getTargetFromMouse()
-    local mousePos = UserInputService:GetMouseLocation()
-    local rayOrigin = workspace.CurrentCamera:ViewportPointToWorldSpace(Vector2.new(mousePos.X, mousePos.Y))
-    local rayDir = (workspace.CurrentCamera:ViewportPointToWorldSpaceAtDistance(Vector2.new(mousePos.X, mousePos.Y), 500).Position - rayOrigin).Unit
-    
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {character, screenGui}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local result = workspace:Raycast(rayOrigin, rayDir * 500, params)
-    
-    if result and result.Instance then
-        local part = result.Instance
-        -- Encontra a raiz do personagem
-        local model = part:FindFirstAncestorOfClass("Model")
-        if model then
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr.Character == model then
-                    return plr, model:FindFirstChild("HumanoidRootPart")
-                end
-            end
+local function refreshPlayerList()
+    -- Limpa lista atual
+    for _, child in pairs(scrollList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
         end
     end
-    return nil, nil
+
+    local order = 1
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Name = "PlayerBtn_" .. player.UserId
+            btn.Text = "👤 " .. player.Name
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 14
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            btn.BorderSizePixel = 0
+            btn.Size = UDim2.new(1, 0, 0, 35)
+            btn.LayoutOrder = order
+            btn.Parent = scrollList
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+            
+            -- Highlight visual se for o alvo atual
+            if currentTarget == player then
+                btn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+                btn.TextColor3 = Color3.fromRGB(0, 255, 100)
+            end
+
+            btn.MouseButton1Click:Connect(function()
+                currentTarget = player
+                targetPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not targetPart and player.Character then
+                    targetPart = player.Character:WaitForChild("HumanoidRootPart", 5)
+                end
+                
+                updateUI()
+                if targetPart then
+                    applyHighlightToPart(targetPart)
+                end
+                
+                -- Atualiza a cor dos botões na lista
+                for _, b in pairs(scrollList:GetChildren()) do
+                    if b:IsA("TextButton") then
+                        if b.Name == "PlayerBtn_" .. player.UserId then
+                            b.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+                            b.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        else
+                            b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                            b.TextColor3 = Color3.new(1, 1, 1)
+                        end
+                    end
+                end
+            end)
+            
+            order += 1
+        end
+    end
 end
 
 -- ==========================================
@@ -253,53 +267,12 @@ end)
 -- LÓGICA DOS BOTÕES
 -- ==========================================
 
-selectBtn.MouseButton1Click:Connect(function()
-    isSelectingMode = not isSelectingMode
-    updateUI()
-    
-    if isSelectingMode then
-        -- Limpa highlight temporário para não confundir
-        clearHighlight()
-        -- Ativa o highlight dinâmico no mouse
-        local mouseHighlightConn
-        mouseHighlightConn = RunService.RenderStepped:Connect(function()
-            if isSelectingMode then
-                local _, hrp = getTargetFromMouse()
-                if hrp then
-                    applyHighlightToPart(hrp)
-                else
-                    clearHighlight()
-                end
-            end
-        end)
-        
-        -- Desativa a conexão quando sair do modo seleção
-        task.spawn(function()
-            while isSelectingMode do
-                task.wait(0.1)
-            end
-            mouseHighlightConn:Disconnect()
-            -- Ao sair, reaplica o highlight no alvo atual se houver
-            if currentTarget and targetPart then
-                applyHighlightToPart(targetPart)
-            end
-        end)
-    else
-        -- Ao desativar, se já tem alvo, mostra o highlight dele
-        if currentTarget and targetPart then
-            applyHighlightToPart(targetPart)
-        else
-            clearHighlight()
-        end
-    end
-end)
-
 stickBtn.MouseButton1Click:Connect(function()
     if currentTarget and targetPart then
         isStuck = true
         updateUI()
     else
-        statusLabel.Text = "Selecione um alvo primeiro!"
+        statusLabel.Text = "Selecione um alvo na lista!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
         task.wait(2)
         updateUI()
@@ -311,32 +284,6 @@ unstickBtn.MouseButton1Click:Connect(function()
     updateUI()
 end)
 
-clearBtn.MouseButton1Click:Connect(function()
-    currentTarget = nil
-    targetPart = nil
-    clearHighlight()
-    updateUI()
-end)
-
--- ==========================================
--- CLICK PARA SELECIONAR (QUANDO EM MODO SELEÇÃO)
--- ==========================================
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if isSelectingMode and input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local player, hrp = getTargetFromMouse()
-        if player and player ~= LocalPlayer then
-            currentTarget = player
-            targetPart = hrp
-            updateUI()
-            applyHighlightToPart(targetPart)
-            -- Opcional: Sair do modo seleção automaticamente após selecionar
-            isSelectingMode = false
-            updateUI()
-        end
-    end
-end)
-
 -- ==========================================
 -- LOOP DE MOVIMENTO (STICK)
 -- ==========================================
@@ -345,7 +292,6 @@ RunService:BindToRenderStep("StickyFollowLogic", Enum.RenderPriority.Late, funct
         return
     end
 
-    -- Verifica se o alvo ainda existe
     if not targetPart:IsDescendantOf(workspace) then
         isStuck = false
         currentTarget = nil
@@ -359,13 +305,11 @@ RunService:BindToRenderStep("StickyFollowLogic", Enum.RenderPriority.Late, funct
     local currentPos = humanoidRootPart.Position
     local toTarget = targetPos - currentPos
     
-    -- Se estiver muito longe, teleporta
     if toTarget.Magnitude > 40 then
         humanoidRootPart.CFrame = CFrame.new(targetPos - (humanoidRootPart.CFrame.LookVector * stickDistance), targetPos)
         return
     end
 
-    -- Interpolação suave
     local newPos = currentPos:Lerp(toTarget * lerpFactor, lerpFactor)
     local lookTarget = targetPos + Vector3.new(0, 2, 0)
     humanoidRootPart.CFrame = CFrame.lookAt(newPos, lookTarget)
@@ -391,6 +335,21 @@ if character then
 end
 LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
+-- Atualiza lista quando jogadores entram/saem
+Players.PlayerAdded:Connect(function()
+    task.wait(1) -- Aguarda o character carregar
+    refreshPlayerList()
+end)
+Players.PlayerRemoving:Connect(function()
+    refreshPlayerList()
+    if currentTarget == nil then
+        -- Se o alvo saiu, limpa
+        clearHighlight()
+        updateUI()
+    end
+end)
+
 -- Inicialização
+refreshPlayerList()
 updateUI()
 setMenuState(true)
